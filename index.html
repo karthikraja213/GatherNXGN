@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jamgun</title>
+    <link rel="stylesheet" href="styles.css">
+    
+    
+</head>
+<body>
+    
+    <header>
+        <h2>GatherNXGN</h2>
+        <img src="images/logo_new.png" alt="Logo" /> 
+        <nav>
+            <ul>
+                <li><a href="index.html" class="nav-link home-link"><img src="images/home.png" alt="home icon"><span>Home</span></a></li>
+                <li><a href="contact.html" class="nav-link contact-link" id="contact"><img src="images/contact.png"  alt="contact icon"><span>Contact</span></a></li>
+            </ul>
+        </nav>
+    </header>
+    <ul>
+        <li><a href="contact.html">Saving the day since 0 A.D </a></li>
+    </ul>
+    <div class="upload">
+        <h1>Upload an image and get paid...</h1>
+        <label for="fileUpload" class="upload-button">Choose Image</label>
+        <input type="file" id="fileUpload" accept=".jpg, .jpeg" multiple>
+        <div id="fileInfo">No files selected.</div> 
+        <!-- <img id="imagePreview" src="" alt="Image Preview"> -->
+        <div class="preview-container" id="previewContainer"></div>
+        <button id="uploadButton" class="submit-button">Upload</button>
+        
+    </div>
+    <script>
+        document.getElementById('fileUpload').addEventListener('change', function(event) {
+            const files = event.target.files;
+            const fileInfo = document.getElementById('fileInfo');
+            const previewContainer = document.getElementById('previewContainer');
+            
+            // Clear previous image previews
+            previewContainer.innerHTML = '';
+
+            if (files.length > 0) {
+                // Display the names of selected files
+                fileInfo.textContent = `Selected files: ${Array.from(files).map(file => file.name).join(', ')}`;
+
+                // Limit preview to the first 5 images
+                const filesToPreview = Array.from(files).slice(0, 5);
+
+                filesToPreview.forEach(file => {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.className = 'image-preview'; // Set class for styling
+                        previewContainer.appendChild(img); // Append preview image to container
+                    };
+                    reader.readAsDataURL(file);
+                });
+            } else {
+                fileInfo.textContent = 'No files selected.';
+            }
+        });
+
+        document.getElementById('uploadButton').addEventListener('click', function() {
+            // Implement your upload logic here (e.g., send file to a server)
+            alert('Upload functionality is not implemented in this example.');
+        });
+    </script>
+    
+</body>
+</html>
