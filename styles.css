@@ -6,6 +6,7 @@ body {
     background-repeat: no-repeat;
     background-attachment: fixed;
     margin: 0;
+
 }
 
 header h2 {
@@ -112,7 +113,7 @@ header nav ul li a:hover {
 .upload{
     max-width: 550px;
     max-height: 500px;
-    margin: auto;
+    margin: 50px auto 0 auto;
     color:rgb(0, 0, 0);
     font-family: Georgia, 'Times New Roman', Times, serif;
     padding: 30px;
@@ -124,6 +125,7 @@ header nav ul li a:hover {
     display: flex;
     flex-direction: column;
     align-items: center; 
+    justify-content: center;
 }
 .upload-button {
     display: inline-block;
