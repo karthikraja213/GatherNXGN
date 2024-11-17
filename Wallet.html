@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connect Wallet and Submit Address</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 100px;
+        }
+        #walletAddress {
+            margin-top: 10px;
+            font-weight: bold;
+            color: green;
+        }
+        input {
+            padding: 10px;
+            margin-top: 20px;
+            width: 300px;
+            font-size: 16px;
+        }
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+    <!-- Load Ethers.js -->
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+</head>
+<body>
+
+    <h2>Connect Wallet and Submit Ethereum Address</h2>
+
+    <button id="connectWalletBtn">Connect Wallet</button>
+    <p id="walletAddress">Not connected</p>
+
+    <input type="text" id="addressInput" placeholder="Enter Ethereum address" />
+    <button id="submitAddressBtn">Submit Address</button>
+
+    <script>
+        // Global variables to store signer and provider
+        let signer;
+
+        // Connect Wallet function
+        async function connectWallet() {
+            if (typeof window.ethereum !== "undefined") {
+                try {
+                    const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+                    const walletAddress = accounts[0];
+                    document.getElementById("walletAddress").innerText = `Connected: ${walletAddress}`;
+
+                    const provider = new ethers.providers.Web3Provider(window.ethereum);
+                    signer = provider.getSigner(); // Save signer for reuse
+
+                    console.log("Wallet connected:", walletAddress);
+                } catch (error) {
+                    console.error("Error connecting wallet:", error);
+                    alert("Failed to connect wallet. Please try again.");
+                }
+            } else {
+                alert("MetaMask is not installed. Please install MetaMask.");
+            }
+        }
+
+        // Submit Address function
+        async function submitAddress() {
+            const userAddress = document.getElementById("addressInput").value;
+
+            // Validate the Ethereum address
+            if (!ethers.utils.isAddress(userAddress)) {
+                alert("Please enter a valid Ethereum address.");
+                return;
+            }
+
+            try {
+                console.log("Fetching contract ABI...");
+                const response = await fetch("contractABI.json");
+
+                if (!response.ok) throw new Error("Failed to fetch contract ABI");
+
+                const abi = await response.json();
+                const contractAddress = "0x6c5F692d8Bf996A496561156649AE3dd786648De"; // Replace with your contract address
+
+                console.log("Creating contract instance...");
+                const contract = new ethers.Contract(contractAddress, abi, signer);
+
+                console.log("Calling submitAccessToken...");
+
+                // Call the contract function (MetaMask will open here)
+                const tx = await contract.submitAccessToken(userAddress);
+                console.log("Transaction submitted:", tx);
+
+                const receipt = await tx.wait(); // Wait for the transaction to be mined
+                console.log("Transaction mined:", receipt);
+
+                alert(`Transaction successful! Tx Hash: ${tx.hash}`);
+            } catch (error) {
+                console.error("Error submitting address:", error);
+                alert(`Error: ${error.message}`);
+            }
+        }
+
+        // Attach event listeners to buttons
+        document.getElementById("connectWalletBtn").addEventListener("click", connectWallet);
+        document.getElementById("submitAddressBtn").addEventListener("click", submitAddress);
+    </script>
+
+</body>
+</html>
