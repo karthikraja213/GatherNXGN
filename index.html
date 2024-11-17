@@ -6,8 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Jamgun</title>
     <link rel="stylesheet" href="styles.css">
-    
-    
+    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.800.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+
+
+
 </head>
 <body>
     
@@ -16,58 +19,263 @@
         <img src="images/logo_new.png" alt="Logo" /> 
         <nav>
             <ul>
+                <!-- <button id="testButton">Test Connection</button> -->
+                <li>
+                    <button id="connectWalletBtn" class="connect-wallet">Connect Wallet</button>
+                    <p id="walletAddress" class="connected-address">Not connected</p>
+                </li>
                 <li><a href="index.html" class="nav-link home-link"><img src="images/home.png" alt="home icon"><span>Home</span></a></li>
+                
                 <li><a href="contact.html" class="nav-link contact-link" id="contact"><img src="images/contact.png"  alt="contact icon"><span>Contact</span></a></li>
             </ul>
         </nav>
     </header>
+    <div class="containers">
+        <div class="banner-container">
+            
+            <div class="banner-text">
+                <img src="images/logo_new.png" alt="Logo" />
+                
+                GatherNXGN.
+                <br>
+                Transforming data crowdsourcing with blockchain and AI.
+            </div>
+        
+        </div>
+        <div class="center-container">
+        <div class="upload">
+            <h1>Upload an image and get ETH⟠</h1>
+            <label for="fileUpload" class="upload-button">Choose Image</label>
+            <input type="file" id="fileUpload" accept=".jpg">
+            <div id="fileInfo">No files selected.</div> 
+            <!-- <img id="imagePreview" src="" alt="Image Preview"> -->
+            <div class="preview-container" id="previewContainer"></div>
+            <button id="uploadButton" class="submit-button">Upload</button>
+            <div class="loader" style="display: none;"></div>
+            
+        </div>
+        <div id="ethereumSubmitContainer" class="token-container">
+            <h2>Submit Ethereum Address</h2>
+            <input type="text" id="addressInput" placeholder="Enter Ethereum address" />
+            <button id="submitAddressBtn" class="submit-button">Submit</button>
+        </div>
+    </div>
+    <div class="requirements-container">
+        <h2>Task Requirements</h2>
+        <ul class="requirements-list">
+            <li> Upload Image with a human face </li>
 
-    <div class="upload">
-        <h1>Upload an image and get paid...</h1>
-        <label for="fileUpload" class="upload-button">Choose Image</label>
-        <input type="file" id="fileUpload" accept=".jpg, .jpeg" multiple>
-        <div id="fileInfo">No files selected.</div> 
-        <!-- <img id="imagePreview" src="" alt="Image Preview"> -->
-        <div class="preview-container" id="previewContainer"></div>
-        <button id="uploadButton" class="submit-button">Upload</button>
+            <li> The file type should be .jpg file </li>
+
+            <li> Upload only one image at a time </li>
+            
+            <li> The face should be clearly visible </li>
+
+            <li> The file name should not have spaces </li>
+        </ul>
         
     </div>
+    
     <script>
+
+
+        document.getElementById('ethereumSubmitContainer').classList.add('disabled');
+        document.getElementById('submitAddressBtn').disabled = true;
+
+
+        let uploadedImageName = ''
+
         document.getElementById('fileUpload').addEventListener('change', function(event) {
             const files = event.target.files;
+            console.log("File selected:", files);
             const fileInfo = document.getElementById('fileInfo');
             const previewContainer = document.getElementById('previewContainer');
             
             // Clear previous image previews
             previewContainer.innerHTML = '';
 
-            if (files.length > 0) {
-                // Display the names of selected files
-                fileInfo.textContent = `Selected files: ${Array.from(files).map(file => file.name).join(', ')}`;
+            // Check if a file is selected
+            if (files.length === 1) {
+                const file = files[0];
+                
+                // Check if the file is a .jpg image
+                const fileType = file.type;
+                const fileExtension = file.name.split('.').pop().toLowerCase();
+                
+                if (fileType === 'image/jpeg' && fileExtension === 'jpg') {
+                    // Display the name of the selected file
+                    fileInfo.textContent = `Selected file: ${file.name}`;
+                    uploadedImageName = file.name
 
-                // Limit preview to the first 5 images
-                const filesToPreview = Array.from(files).slice(0, 5);
-
-                filesToPreview.forEach(file => {
+                    // Create a preview of the image
                     const reader = new FileReader();
                     reader.onload = function(e) {
                         const img = document.createElement('img');
                         img.src = e.target.result;
-                        img.className = 'image-preview'; // Set class for styling
-                        previewContainer.appendChild(img); // Append preview image to container
+                        img.className = 'image-preview'; 
+                        previewContainer.appendChild(img);
                     };
                     reader.readAsDataURL(file);
-                });
+                } else {
+                    fileInfo.textContent = 'Invalid file type. Please select a .jpg image.';
+                    event.target.value = ''; 
+                }
             } else {
-                fileInfo.textContent = 'No files selected.';
+                fileInfo.textContent = 'Please select only one file.';
+                event.target.value = ''; 
             }
         });
+        AWS.config.update({
+                accessKeyId: '',       
+                secretAccessKey: '', 
+                region: ''                      
+        });
+    
+    
+        document.getElementById('uploadButton').addEventListener('click', async function() {
+
+            const s3 = new AWS.S3();
+            const fileInput = document.getElementById('fileUpload');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert("Please select a file to upload.");
+                return;
+            }
+
+
+
+            const params = {
+                Bucket: 'gathernxgnbucket',
+                Key: `uploads/${file.name}`,
+                Body: file,
+                ContentType: file.type
+            };
+            s3.upload(params, function (err, data) {
+                if (err) {
+                console.log('Error', err);
+                } else {
+                console.log('Successfully uploaded file.', data);
+
+                fileInfo.textContent = `Image uploaded, Please Wait for Validation Results...`;
+                }
+            });
+        });
+
+        function checkFaceDetectionResults(attempt = 1) {
+            const s3 = new AWS.S3();
+            if (!uploadedImageName) {
+                alert("No file uploaded yet.");
+                return;
+            }
+
+            
+            const resultJsonUrl = `https://gathernxgnresultsbucket.s3.us-east-1.amazonaws.com/results/${uploadedImageName}_analysis.json`;
+
+            console.log('Checking results from:', resultJsonUrl);
+            fetch(resultJsonUrl)
+            .then(response => response.json())
+            .then(data => {
+                console.log("Complete JSON response:", data);
+
+                const faceDetected = Array.isArray(data) && data.some(face => face.BoundingBox);
+
+                
+                
+                document.getElementById('fileInfo').textContent = faceDetected ? 'Image passed AI Validation!✅ Claim your reward below!' : 'Image failed Validation❌, Upload diffent image.';
+                if (faceDetected) {
+                    document.getElementById('ethereumSubmitContainer').classList.remove('disabled');
+                    document.getElementById('submitAddressBtn').disabled = false;
+
+
+                    
+                }
+
+
+                return;
+            })
+            .catch(error => {
+                console.error('Error fetching face detection results:', error);
+                document.getElementById('fileInfo').textContent = 'Failed to load results. See console for details.';
+                
+            });
+        }
 
         document.getElementById('uploadButton').addEventListener('click', function() {
-            // Implement your upload logic here (e.g., send file to a server)
-            alert('Upload functionality is not implemented in this example.');
+            
+            setTimeout(checkFaceDetectionResults, 20000); 
         });
+
+
+        let signer;
+        async function connectWallet() {
+            if (typeof window.ethereum !== "undefined") {
+                try {
+                    // Request access to MetaMask accounts
+                    const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+                    
+                    // Get the first account (default account)
+                    const walletAddress = accounts[0];
+                    document.getElementById("walletAddress").innerText = `Connected ✅`;
+
+                    const provider = new ethers.providers.Web3Provider(window.ethereum);
+                    signer = provider.getSigner();
+
+                    console.log("Connected account:", walletAddress);
+                } catch (error) {
+                    console.error("Error connecting wallet:", error);
+                    alert("Failed to connect wallet. Please Login to Metamask.");
+                }
+            } else {
+                alert("MetaMask is not installed. Please install MetaMask to connect your wallet.");
+            }
+        }
+
+       
+
+
+        async function submitAddress() {
+            const userAddress = document.getElementById("addressInput").value;
+        
+                // Validate the Ethereum address
+            if (!ethers.utils.isAddress(userAddress)) {
+                alert("Please enter a valid Ethereum address.");
+                return;
+            }
+
+            try {
+                console.log("Fetching contract ABI...");
+                const response = await fetch("contractABI.json");
+
+                if (!response.ok) throw new Error("Failed to fetch contract ABI");
+
+                const abi = await response.json();
+                const contractAddress = "0x6c5F692d8Bf996A496561156649AE3dd786648De"; 
+
+                console.log("Creating contract instance...");
+                const contract = new ethers.Contract(contractAddress, abi, signer);
+
+                console.log("Calling submitAccessToken...");
+
+                // Call the contract function (MetaMask will open here)
+                const tx = await contract.submitAccessToken(userAddress);
+                console.log("Transaction submitted:", tx);
+
+                const receipt = await tx.wait(); 
+                console.log("Transaction mined:", receipt);
+
+                alert(`Transaction successful! Tx Hash: ${tx.hash}`);
+            } catch (error) {
+            console.error("Error submitting address:", error);
+            alert(`Error: ${error.message}`);
+            }
+        }
+
+        // Attach the functions to buttons
+        document.getElementById("connectWalletBtn").addEventListener("click", connectWallet);
+        document.getElementById("submitAddressBtn").addEventListener("click", submitAddress);
+
+
     </script>
-    
 </body>
 </html>
